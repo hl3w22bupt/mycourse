@@ -32,9 +32,10 @@
 - **产出物**：`FrameworkEngine`（transformers 后端）+ FastAPI OpenAI 兼容服务 + 冒烟脚本
   + `make bootstrap` 离线自建 tiny-gpt2（框架训练循环演示，不依赖网络）
   + 指标记录位（`metrics.py` + `GET /v1/engine/info`：冒烟通过后写
-  `docs/metrics/inference-baseline.json` 的 `framework` 槽位，`handrolled` 槽位预留对拍）。
+  `docs/metrics/inference-baseline.json` 的 `framework` 槽位，`handrolled` 槽位留待 P5 后
+  由 `make metrics-handrolled` 按同口径回填）。
 - **DoD**：`make serve` + `make smoke` 单机可复现，冒烟生成文本非空，指标记录
-  `framework` 槽位有数、`handrolled` 槽位保持预留；
+  `framework` 槽位有数；
   `pytest tests/test_p1_framework.py` 协议用例全绿（桩引擎，无需真模型）。
 
 ### P2-P4 手搓核心（后手搓）

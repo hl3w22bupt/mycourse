@@ -5,7 +5,7 @@
 断言生成文本非空 → 再打一发 /v1/chat/completions →
 按对拍协议（greedy、同 prompt、同 max_tokens）计时打 N 次补全 →
 把框架侧指标写进 docs/metrics/inference-baseline.json 的 ``framework`` 槽位
-（``handrolled`` 槽位预留，供手搓引擎 P2-P5 对拍回填）→ 关服务。
+（已回填的 ``handrolled`` 槽位 / ``batch`` 节原样保留，不会被本次重写冲掉）→ 关服务。
 
 用法（huggingface.co 直连不通时会自动走 hf-mirror 镜像）：
     make smoke
@@ -232,7 +232,7 @@ def main() -> int:
                 print(f"SMOKE_METRICS_SUMMARY {record['framework']['summary']}", flush=True)
                 print(
                     f"SMOKE_METRICS_SAVED {out_path}"
-                    "（framework 槽位已写入；handrolled 槽位预留，待手搓引擎对拍回填）",
+                    "（framework 槽位已刷新；已回填的 handrolled / batch 数据原样保留）",
                     flush=True,
                 )
             except Exception as exc:  # noqa: BLE001 - 记录失败必须让冒烟失败，避免「无记录假通过」

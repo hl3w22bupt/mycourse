@@ -40,7 +40,7 @@ pip install vllm && vllm serve Qwen/Qwen2.5-0.5B-Instruct --port 8000
 | `framework.summary` | 平均 / p50 延迟、聚合吞吐 `tokens_per_s`、token 用量 |
 | `framework.requests` | 每请求的 `prompt_tokens` / `completion_tokens` / `latency_ms` / `tokens_per_s` |
 | `framework.sample_text` | 首条 greedy 生成样本（两边的文本可以直接比对） |
-| `handrolled` | **预留槽位**（各字段 null + `todo` 说明）：手搓引擎按同口径出数后回填 |
+| `handrolled` | 手搓引擎（P2-P5）按同口径回填的对应字段（`make metrics-handrolled`；未回填时各字段 null + `todo` 说明）。`protocol_delta` 写明与框架侧的口径差（in-process 无 HTTP、字符级 tokenizer） |
 
 实现要点：
 
@@ -50,11 +50,13 @@ pip install vllm && vllm serve Qwen/Qwen2.5-0.5B-Instruct --port 8000
 - 元信息（device / 参数量 / torch & transformers 版本）来自服务端
   `GET /v1/engine/info`（infer-lab 扩展端点，非 OpenAI 协议字段；引擎没暴露的属性自动缺席）；
 - 记录随仓库提交留档，`tests/test_repo_artifacts.py` 有守护测试锁定
-  「framework 槽位已填、handrolled 槽位预留」的形态。
+  「framework 槽位已填、handrolled 槽位按同口径回填、batch 节两侧齐全」的形态（schema v2）。
 
-对拍回填方式：手搓引擎（P2-P5）能出数后，按 `protocol` 同口径跑同样的请求，把结果
-填进 `handrolled` 槽位即可逐字段对比延迟与吞吐。**不要动 `framework` 槽位**——那是
-框架基线，重跑 `make smoke` 会自动刷新它。
+对拍回填方式：`make train-demo && make metrics-handrolled`（`scripts/measure_handrolled.py`）
+按 `protocol` 同口径跑同样的请求，自动把结果回填进 `handrolled` 槽位（含
+`protocol_delta` 口径差说明），并在同 prompt / greedy 下对拍 B=1/2/4/8/16 的整批吞吐
+写进顶层 `batch` 节。**不要动 `framework` 槽位**——那是框架基线，重跑 `make smoke`
+会自动刷新它；且刷新时 `write_record` 会保留已回填的 `handrolled` / `batch` 数据。
 
 ## 参考实现
 `infer_lab/p1_framework/solutions/engine.py`

@@ -7,7 +7,7 @@ TINY_MODEL ?= models_cache/tiny-gpt2-toy   # P1 默认模型（离线自建，�
 METRICS_OUT ?= docs/metrics/inference-baseline.json   # P1 冒烟写入的框架侧指标记录位
 
 .PHONY: help install check-env bootstrap test test-user test-all \
-        train-demo generate-demo serve smoke e2e clean
+        train-demo generate-demo serve smoke metrics-handrolled e2e clean
 
 help:
 	@echo "infer-lab 常用命令："
@@ -20,6 +20,7 @@ help:
 	@echo "  make bootstrap      P1 离线自建 tiny-gpt2（默认模型，幂等）"
 	@echo "  make serve          P1 拉起 OpenAI 兼容推理服务（transformers 后端）"
 	@echo "  make smoke          P1 冒烟：起服务→请求→断言非空生成→写框架侧指标记录→关服务"
+	@echo "  make metrics-handrolled  手搓引擎指标回填：framework 同口径 + B>1 批量对拍"
 	@echo "  make e2e            一键复现：check-env → test → train-demo → generate-demo"
 
 install:
@@ -56,7 +57,12 @@ smoke:
 	HF_ENDPOINT=$(HF_ENDPOINT) $(PY) scripts/smoke_framework.py \
 		--model $(TINY_MODEL) --port 8001 --metrics-out $(METRICS_OUT)
 
+# 手搓引擎指标回填：framework 同口径 + B>1 批量对拍（先 train-demo 产出 checkpoint）
+metrics-handrolled:
+	$(PY) scripts/measure_handrolled.py --ckpt runs/toy/ckpt.pt --record $(METRICS_OUT)
+
 e2e: check-env test train-demo generate-demo
 	@echo ""
 	@echo "✅ e2e 完成：环境自检 / 全量测试 / 训练 demo / 生成 demo 全部通过。"
 	@echo "   P1 框架部署演示请另跑：make smoke（起服务+冒烟一条龙）"
+	@echo "   手搓侧指标对拍请另跑：make metrics-handrolled（同口径回填 handrolled 槽位 + B>1 批量对拍）"

@@ -30,11 +30,14 @@ make generate-demo    # 加载 checkpoint 生成文本
 # 3) P1 框架部署：单条命令起 OpenAI 兼容服务 + 冒烟 + 指标留档
 make bootstrap        # 离线自建 tiny-gpt2（transformers 构建 + 玩具语料微调，幂等）
 make smoke            # 起服务 → 生成非空断言 → 写框架侧指标记录 → 关服务（全离线可跑）
-# 指标记录落在 docs/metrics/inference-baseline.json：framework 槽位自动写入，
-# handrolled 槽位预留 —— 手搓引擎（P2-P5）对拍后按同口径回填
+# 指标记录落在 docs/metrics/inference-baseline.json：framework 槽位由 smoke 自动写入，
+# handrolled 槽位由手搓引擎（P2-P5）按同口径回填（见下一条 make metrics-handrolled）
 # 或手动：make serve   然后另开终端 curl http://127.0.0.1:8000/v1/completions ...
 
-# 4) 端到端串联（环境 → 测试 → 训练 → 生成）
+# 4) 手搓引擎指标对拍：framework 同口径回填 handrolled 槽位 + B>1 批量对拍
+make metrics-handrolled   # 需先 make train-demo 产出手搓 checkpoint
+
+# 5) 端到端串联（环境 → 测试 → 训练 → 生成）
 make e2e
 ```
 
@@ -124,6 +127,8 @@ $EDITOR infer_lab/p3_attention/solutions/attention.py
   `sshleifer/tiny-gpt2` 只是可选项。
 - **指标记录位怎么用？** `make smoke` 冒烟通过后自动把框架侧延迟 / 吞吐 /
   token 用量写进 [docs/metrics/inference-baseline.json](docs/metrics/inference-baseline.json)
-  的 `framework` 槽位；`handrolled` 槽位预留，等 P2-P5 手搓引擎能按同口径
-  （greedy、同 prompt / max_tokens / 请求数）出数后回填，两边逐字段对比。
+  的 `framework` 槽位；`make metrics-handrolled` 让手搓引擎按同口径
+  （greedy、同 prompt / max_tokens / 请求数）出数回填 `handrolled` 槽位，
+  并在同一协议下对拍 B>1 批量吞吐（顶层 `batch` 节）。重跑 `make smoke`
+  只刷新框架侧基线，**不会冲掉**已回填的手搓侧数据。
   详见 [P1 README](infer_lab/p1_framework/README.md)。

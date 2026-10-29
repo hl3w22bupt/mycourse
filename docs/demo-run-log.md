@@ -246,3 +246,52 @@ SMOKE_OK 框架部署端到端通过（起服务 → 生成非空 → chat 通�
 
 结论：solutions 与骨架 TODO 逐模块对齐且有守护测试；骨架态与参考实现态共用同一套
 单测，照骨架实现的代码可直接与参考实现互相替换验收。
+
+## 11. 终验收口：手搓侧指标回填 + B>1 批量对拍 + 复写保护（2026-10-29 追加）
+
+「端到端终验与指标/文档收口」节点：`handrolled` 槽位按 framework 同口径回填、顶层
+新增 B>1 批量对拍节（schema v1 → v2）、对比笔记补「批量生成的坑」、bug
+`cmvtfut20003om9sff0svg7kj` 修复证据包
+（[bugfix-evidence-cmvtfut20003om9sff0svg7kj.md](bugfix-evidence-cmvtfut20003om9sff0svg7kj.md)）。
+
+真机环境：Python 3.12.13 / torch 2.15.0 / transformers 5.21.1，macOS arm64（MPS），全离线。
+
+```
+$ make e2e         # 环境自检 → 全量测试 → 训练 → 生成
+179 passed in 2.96s                # 终验起点（收口改动提交后为 191 passed）
+LOSS_INITIAL 3.6221 / LOSS_FINAL 0.1387 / LOSS_IMPROVED yes
+✅ e2e 完成：环境自检 / 全量测试 / 训练 demo / 生成 demo 全部通过。
+
+$ make metrics-handrolled   # 手搓引擎按 framework 同口径出数（回填 handrolled 槽位 + batch 节）
+MEASURE_HANDROLLED_ENGINE params=99584 device=mps vocab=29 block_size=64
+MEASURE_SAMPLE_TEXT ' run. the little engine '
+MEASURE_REQUEST {'index': 0, 'prompt_tokens': 23, 'completion_tokens': 24, 'latency_ms': 59.91, 'tokens_per_s': 400.6}
+MEASURE_HANDROLLED_SUMMARY {'requests': 5, 'prompt_tokens': 23, ..., 'latency_ms_p50': 59.91, 'tokens_per_s': 391.93}
+MEASURE_BATCH_ROW {'batch_size': 16, 'completion_tokens_total': 384, 'latency_ms': 53.17, 'tokens_per_s': 7222.12}（3 次取最小）
+MEASURE_FRAMEWORK_BATCH_SUMMARY {..., 'speedup_vs_b1': [1.0, 1.6, 3.24, 6.51, 12.97], 'best_tokens_per_s': 10841.33}
+MEASURE_HANDROLLED_BATCH_SUMMARY {..., 'speedup_vs_b1': [1.0, 2.1, 4.3, 8.73, 17.15], 'best_tokens_per_s': 7156.17}
+MEASURE_SAVED docs/metrics/inference-baseline.json（handrolled 槽位 + batch 节已回填；framework 槽位未动）
+
+$ make smoke       # 复写保护验证：framework 槽位刷新，已回填数据必须原样保留
+SMOKE_METRICS_SAVED docs/metrics/inference-baseline.json（framework 槽位已刷新；已回填的 handrolled / batch 数据原样保留）
+SMOKE_OK 框架部署端到端通过（起服务 → 生成非空 → chat 通道 → 指标留档）
+# 受控核对：smoke 前后 diff → framework 刷新（tokens/s 751.74 → 745.99），
+# handrolled / batch / protocol 三个部分逐字节一致 ✅
+```
+
+记录要点：
+
+- **手搓侧 B=1**：与 framework 槽位同协议（同 prompt「the little engine could」、
+  同 max_tokens=24、同 5 请求、greedy ≡ top_k=1），p50 ≈59.9ms、聚合吞吐 ≈392 tokens/s；
+  口径差（in-process 无 HTTP、字符级 tokenizer 同 prompt=23 tokens vs WordLevel=4）
+  写在记录的 `handrolled.protocol_delta`，framework 侧绝对延迟不可直接比。
+- **B>1 批量对拍**（两边都 in-process，可比）：整批延迟随 B 几乎不变、整批吞吐线性涨 ——
+  手搓 421→7156 tokens/s（17.25×）、框架 855→10841 tokens/s（12.47×）；
+  每尺寸热身后重复 3 次取最小延迟（MPS 对新 batch 形状有一次性内核编译开销，
+  首跑不热身会把数字拖慢一个数量级，实测已复现并规避）。
+- **bug 修复判别力复核**：修复后测试放回修复前代码（worktree @ `c7459b6`）→
+  `19 failed, 19 passed`（失败全部是批量用例）；`scripts/verify_b1_batch.py`
+  修复前 3 节 FAIL / 修复后 3 节 PASS（exit 0）。
+- **守护测试更新**：`tests/test_repo_artifacts.py` 锁定「framework 已填 / handrolled 同口径
+  已回填 / batch 节两侧齐全且 speedup≥1」；`tests/test_p1_metrics.py` 新增
+  批量口径、回填校验、smoke 复写保护用例。
