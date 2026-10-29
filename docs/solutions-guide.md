@@ -25,10 +25,10 @@
 | P1 | `infer_lab/p1_framework/engine.py` | `solutions/engine.py` | `tests/test_p1_framework.py`、`tests/test_p1_metrics.py` | 返回 text 剥掉 prompt；懒加载；greedy 时不传采样参数 | `make smoke` |
 | P2 | `infer_lab/p2_tokenizer/tokenizer.py` | `solutions/tokenizer.py` | `tests/test_p2_tokenizer.py` | 编解码往返；未登录 → `<unk>`；`max_len` 截断后仍包 special | `pytest tests/test_p2_tokenizer.py` |
 | P2b | `infer_lab/p2_embedding/embedding.py` | `solutions/embedding.py` | `tests/test_p2_embedding.py` | 同 token 不同位置可区分；`arange` 跟 `idx.device`；越界抛 `ValueError` | `pytest tests/test_p2_embedding.py` |
-| P3 | `infer_lab/p3_attention/attention.py` | `solutions/attention.py` | `tests/test_p3_attention.py` | **因果性**；**RoPE 相对性**；**GQA**；**缓存对拍 ≡ 全量重算** | `pytest tests/test_p3_attention.py` |
-| P3b | `infer_lab/p3_kv_cache/kv_cache.py` | `solutions/kv_cache.py` | `tests/test_p3_kv_cache.py` | `update` 返回全量可打分；`with kv:` 进出即复位；越界 `IndexError` | `pytest tests/test_p3_kv_cache.py` |
-| P4 | `infer_lab/p4_sampling/sampling.py` | `solutions/sampling.py` | `tests/test_p4_sampling.py` | 过滤用 `-inf` 且在 softmax 之前；top-k=1 ≡ argmax；同 seed 可复现；批量 `(B>1,V)` 返回每行一个 id 的张量（单序列保持 python int） | `pytest tests/test_p4_sampling.py` |
-| P4b | `infer_lab/p4_generate/generate.py` | `solutions/generate.py` | `tests/test_p4_generate.py` | **use_cache=True ≡ False**（含批量）；贪心 ≡ 手写 argmax 循环；每行采**各自**的 id（不广播）；全 batch 命中 eos 提前停 | `pytest tests/test_p4_generate.py` |
+| P3 | `infer_lab/p3_attention/attention.py` | `solutions/attention.py` | `tests/test_p3_attention.py` | **因果性**；**RoPE 相对性**；**GQA**；**缓存对拍 ≡ 全量重算**（批量 B>1 亦然，`past_kv` 保持 `(B, n_kv_head, S, d)`、行间零串扰） | `pytest tests/test_p3_attention.py` |
+| P3b | `infer_lab/p3_kv_cache/kv_cache.py` | `solutions/kv_cache.py` | `tests/test_p3_kv_cache.py` | `update` 返回全量可打分；`with kv:` 进出即复位；越界 `IndexError`；批量下追加拼在**时间维**（-2），各行历史互不串行 | `pytest tests/test_p3_kv_cache.py` |
+| P4 | `infer_lab/p4_sampling/sampling.py` | `solutions/sampling.py` | `tests/test_p4_sampling.py` | 过滤用 `-inf` 且在 softmax 之前；top-k=1 ≡ argmax；同 seed 可复现；批量 `(B>1,V)` 返回每行一个 id 的张量（单序列保持 python int）；温度/top-k/top-p **按行独立**（批量结果 ≡ 逐行计算，行置换不变） | `pytest tests/test_p4_sampling.py` |
+| P4b | `infer_lab/p4_generate/generate.py` | `solutions/generate.py` | `tests/test_p4_generate.py` | **use_cache=True ≡ False**（含批量）；贪心 ≡ 手写 argmax 循环；**批量 ≡ 逐条循环逐 token 全等**（多样 prompt、cache 开关均成立）；每行从**本行**分布采自己的 id（不广播，随机路径下各行 token 只落在本行候选集）；全 batch 命中 eos 提前停 | `pytest tests/test_p4_generate.py` |
 | P5 | `infer_lab/p5_toy/model.py` + `data.py` | `solutions/model.py` + `solutions/data.py` | `tests/test_p5_train_generate.py` | 窗口右移一位当标签；loss 下降；checkpoint 存取往返 | `INFER_LAB_TARGET=user make train-demo` |
 
 ## 3. 照做五步法（每个模块都一样）
@@ -64,6 +64,12 @@ make test
 5. **P3b KVCache**：`len(kv) == seq_len`；`update`/`get` 越界抛 `IndexError`。
 6. **P5 model/data**：`TinyGPT` 暴露 `config` 与 `block_size`（生成脚本按它 clamp 总长）；
    `CharDataset` 暴露 `tokenizer` / `vocab_size` / `ids` / `block_size`。
+7. **批量（B>1）是一等公民**：三条采样链（温度/top-k/top-p）都只动最后一维，天然按行独立——
+   `sample_token` 对 `(B>1, V)` 返回每行一个 id 的 `(B,)` 张量（单序列 `(V,)`/`(1,V)` 向后兼容返回
+   python `int`）；`generate` 逐行拼各自采出的 id（把一条 id `torch.full` 广播给整个 batch，
+   会让所有序列走出完全相同的轨迹）；KV cache 批量下追加拼在**时间维**（`dim=-2`），batch 维
+   原样保留。判批量语义正确的金标准：**批量生成 ≡ 逐条循环生成（逐 token 全等）**，cache 开关
+   两种姿态都要成立（`tests/test_p4_generate.py` 的 `test_batch_equals_per_row_loop_*`）。
 
 ## 5. 对齐由谁守护
 

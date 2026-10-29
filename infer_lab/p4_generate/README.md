@@ -8,10 +8,13 @@
 
 ## 任务
 1. 实现 `generate(model, input_ids, config)`（`GenerationConfig` 已给出）。
-2. 通过 `pytest tests/test_p4_generate.py`，重点三条对拍：
+2. 通过 `pytest tests/test_p4_generate.py`，重点对拍：
    - `use_cache=True` 与 `False` 输出逐 token 一致（cache 只能加速，不能改变结果，批量亦然）；
    - 贪心（top_k=1）与手写 argmax 展开循环一致；
-   - 批量（B>1）时各行新 token 按各自分布产生，eos 全停按最晚的行算。
+   - **批量（B>1）≡ 逐条循环**：多样 prompt 的批量输出与「一行一行单独生成再堆起来」
+     逐 token 全等（`test_batch_equals_per_row_loop_*`，cache 开关两种姿态都要成立）；
+   - 批量时各行新 token 按各自分布产生（随机采样路径下每行 token 只落在本行候选集内），
+     eos 全停按最晚的行算。
 
 ## 验收命令
 ```bash

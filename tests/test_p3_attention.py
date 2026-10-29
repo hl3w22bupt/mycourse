@@ -121,3 +121,55 @@ def test_gqa_uses_fewer_kv_params_than_mha(mod):
     mha = mod.CausalSelfAttention(n_embd=64, n_head=8, n_kv_head=None)
     gqa = mod.CausalSelfAttention(n_embd=64, n_head=8, n_kv_head=2)
     assert sum(p.numel() for p in gqa.parameters()) < sum(p.numel() for p in mha.parameters())
+
+
+# ---------- 批量维度（B>1）：缓存形状、逐行对拍、行间零串扰 ----------
+
+def test_cached_decode_batch_dim_matches_full_forward_per_row(mod):
+    """B>1 带缓存逐步解码 ≡ 全量前向，且 past_kv 保持 (B, n_kv_head, S, head_dim)。"""
+    torch.manual_seed(0)
+    attn = mod.CausalSelfAttention(n_embd=16, n_head=4, n_kv_head=2).eval()
+    x = torch.randn(3, 5, 16)
+    with torch.no_grad():
+        full, past = attn(x, use_cache=True)
+        assert past is not None
+        assert past[0].shape == (3, 2, 5, 4) and past[1].shape == (3, 2, 5, 4), (
+            f"批量缓存的 batch 维必须保留：实际 {tuple(past[0].shape)}"
+        )
+        outs = []
+        step_past = None
+        for t in range(5):
+            o, step_past = attn(x[:, t : t + 1], past_kv=step_past, use_cache=True)
+            outs.append(o)
+        incremental = torch.cat(outs, dim=1)
+    assert step_past[0].shape == (3, 2, 5, 4)
+    assert torch.allclose(full, incremental, atol=1e-5), "批量下带缓存逐步解码必须等价于全量前向"
+
+
+def test_batch_rows_do_not_mix_in_attention(mod):
+    """batch 各行的输出与 KV 缓存互不串扰：批量跑第 i 行 == 单独跑第 i 行。"""
+    torch.manual_seed(0)
+    attn = mod.CausalSelfAttention(n_embd=16, n_head=4, n_kv_head=2).eval()
+    x = torch.randn(3, 5, 16)
+    with torch.no_grad():
+        full, kv_full = attn(x, use_cache=True)
+        # 只扰动行 1 的「未来」位置：行 0/2 的输出与缓存都必须纹丝不动
+        x_perturbed = x.clone()
+        x_perturbed[1, 3:] += 100.0
+        perturbed, kv_perturbed = attn(x_perturbed, use_cache=True)
+        for i in range(3):
+            single, kv_single = attn(x[i : i + 1], use_cache=True)
+            assert torch.allclose(full[i], single[0], atol=1e-5), f"行 {i} 的输出与单独跑不一致（跨行串扰）"
+            assert torch.allclose(kv_full[0][i], kv_single[0][0], atol=1e-5), (
+                f"行 {i} 的 K 缓存与单独跑不一致 —— 批量缓存的 batch 维串行了"
+            )
+            assert torch.allclose(kv_full[1][i], kv_single[1][0], atol=1e-5), (
+                f"行 {i} 的 V 缓存与单独跑不一致 —— 批量缓存的 batch 维串行了"
+            )
+            if i != 1:
+                assert torch.allclose(perturbed[i], full[i], atol=1e-5), (
+                    f"行 1 的扰动泄漏到了行 {i} —— batch 维注意力把行间信息混进来了"
+                )
+                assert torch.allclose(kv_perturbed[0][i], kv_full[0][i], atol=1e-5), (
+                    f"行 1 的扰动污染了行 {i} 的 K 缓存"
+                )
