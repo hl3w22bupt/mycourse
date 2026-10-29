@@ -18,8 +18,10 @@ TODO(学习者)：实现以下函数。全部只动最后一维 logits，输入�
    - ``0 < top_p <= 1``，越界抛 ``ValueError``。
 
 4. ``sample_token(logits, temperature=1.0, top_k=None, top_p=None, generator=None)``
-   - 依次做 temperature 缩放 → top-k → top-p 过滤 → softmax → 按概率采 1 个 id；
-   - 返回 python ``int``（最后一个维度上的选择）。
+   - 依次做 temperature 缩放 → top-k → top-p 过滤 → softmax → 多项式采样；
+   - 单序列（``(V,)`` 或 ``(1, V)``）返回 python ``int``（最后一个维度上的选择）；
+   - 批量（``(B, V)`` 且 ``B > 1``）返回形状 ``(B,)`` 的 ``LongTensor`` ——
+     过滤只动最后一维、天然按行独立，每行用**本行**分布采样，各行 id 可以不同。
 
 对照：参考实现见 ``solutions/sampling.py``；过滤用 ``-inf``（不是 0），
 必须发生在 softmax 之前。

@@ -7,6 +7,8 @@
 - top-p（nucleus）：**候选多大一堆？** 留到「累计概率 ≥ p」的最小集合，
   分布尖锐时候选少、分布平缓时候选多 —— 自适应候选数。
 - 过滤一律用 ``-inf`` 而不是 0：要在 softmax **之前**置零概率。
+- 批量（B>1）：三条过滤策略都只动最后一维、天然按行独立；``sample_token``
+  对 ``(B, V)`` 输入返回每行一个 id 的 ``(B,)`` 张量 —— 各行用**本行**分布采样。
 """
 
 from __future__ import annotations
@@ -53,9 +55,17 @@ def sample_token(
     top_k: int | None = None,
     top_p: float | None = None,
     generator: torch.Generator | None = None,
-) -> int:
-    """完整采样链：temperature → top-k → top-p → softmax → 多项式采样。"""
+) -> int | torch.Tensor:
+    """完整采样链：temperature → top-k → top-p → softmax → 多项式采样。
+
+    返回值按输入形状分两种（向后兼容）：
+    - 单序列 ``(...)`` 或 ``(1, V)``：返回 python ``int``（最后一个维度上的选择）；
+    - 批量 ``(B, V)`` 且 ``B > 1``：返回形状 ``(B,)`` 的 ``LongTensor``，
+      每行用**本行**过滤后的分布独立采样 —— 各行 id 可以不同。
+    """
     filtered = top_p_filtering(top_k_filtering(logits, top_k), top_p)
     probs = softmax_with_temperature(filtered, temperature)
     idx = torch.multinomial(probs, num_samples=1, generator=generator)
+    if logits.dim() >= 2 and logits.shape[0] > 1:
+        return idx[..., 0]  # (B, 1) → (B,)：每行各自的 id
     return int(idx[..., 0])
