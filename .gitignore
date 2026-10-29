@@ -30,3 +30,6 @@ models_cache/
 .DS_Store
 .idea/
 .vscode/
+
+# MyRD 平台会话级注入的脚手架（skills/CLAUDE.md/mcp.json，含本机路径，不入项目仓库）
+.myrd-platform/

@@ -117,3 +117,39 @@ $ make e2e
 | 3 | transformers `labels` 内部已右移，训练循环再手动右移 → 双重位移，生成复读 | bootstrap 改为 `labels=x`，并在对比笔记中记录该差异 |
 | 4 | 词表与预分词不一致 → 语料大面积 `[UNK]` | 词表从同一预分词器输出构建 + UNK 占比断言 |
 | 5 | huggingface.co 不可达且镜像 308 回源 → P1 冒烟卡在模型下载 | `make bootstrap` 离线自建 tiny-gpt2，冒烟全离线可跑 |
+
+## 8. 建仓验证记录（干净环境从零装依赖 → 测试可执行）
+
+> 按任务「按路线图建仓：……测试可执行」的要求，在**全新虚拟环境**（删除 `.venv/`、
+> `runs/`、`models_cache/` 后）从零执行依赖安装与全部验收命令，证明仓库
+> clone 后即可复现。与前述记录不同的另一台/另一版环境：
+
+- 环境：Python 3.11.15（uv 管理），macOS arm64（MPS 可用）
+- 安装：`uv venv .venv --python 3.11` → `uv pip install -e ".[framework,dev]"`
+- 装得版本：torch 2.15.0 / numpy 2.4.6 / transformers 5.21.1 / fastapi 0.162.0 / pytest
+- 日期：2026-10-29
+
+```
+$ make test        # solutions 参考实现态
+98 passed in 7.62s
+
+$ make test-user   # TODO 骨架态
+50 passed, 48 xfailed in 1.58s   # xfail 原因均为「待实现」
+
+$ make e2e         # check-env → test → train-demo → generate-demo
+STEP 0 loss 3.6221 val 3.6311
+STEP 200 loss 0.1387 val 0.1348
+LOSS_IMPROVED yes
+CHECKPOINT runs/toy/ckpt.pt
+SAMPLE_TEXT the little engine could run. the little engine could write. a ti
+GENERATION the little engine could think. the little engine could think. th
+✅ e2e 完成：环境自检 / 全量测试 / 训练 demo / 生成 demo 全部通过。
+
+$ make smoke       # P1 框架部署：bootstrap 离线自建 → 起服务 → 冒烟断言
+BOOTSTRAP_LOSS 3.7844 -> 0.0619
+SMOKE_COMPLETION_TEXT 'write . a tiny model can learn . a tiny model can grow . a tiny model can run . a tiny model can'
+SMOKE_OK 框架部署端到端通过（起服务 → 生成非空 → chat 通道）
+```
+
+结论：路线图勾稽表（ROADMAP.md）9 项全部核验通过，双模式测试、训练/生成闭环与
+P1 框架部署冒烟在干净环境下均可执行。

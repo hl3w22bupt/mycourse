@@ -47,18 +47,22 @@
 
 ## 路线图 ↔ 代码骨架勾稽表（对照清单）
 
-- [ ] P0 → `infer_lab/p0_env`（`env_check.py` 桩 + `solutions/env_check.py`）
-- [ ] P1 → `infer_lab/p1_framework`（`engine.py` 桩 + `server.py` 胶水 + `solutions/engine.py`）
-- [ ] P2 → `infer_lab/p2_tokenizer`（`tokenizer.py` 桩 + solution）
-- [ ] P2b → `infer_lab/p2_embedding`（`embedding.py` 桩 + solution）
-- [ ] P3 → `infer_lab/p3_attention`（`attention.py` 桩 + solution）
-- [ ] P3b → `infer_lab/p3_kv_cache`（`kv_cache.py` 桩 + solution）
-- [ ] P4 → `infer_lab/p4_sampling`（`sampling.py` 桩 + solution）
-- [ ] P4b → `infer_lab/p4_generate`（`generate.py` 桩 + solution）
-- [ ] P5 → `infer_lab/p5_toy`（`model.py`/`data.py` 桩 + `corpus.py` + `train.py`/`generate.py` 工作脚本 + solution）
+- [x] P0 → `infer_lab/p0_env`（`env_check.py` 桩 + `solutions/env_check.py`）—— 验收：`make check-env`
+- [x] P1 → `infer_lab/p1_framework`（`engine.py` 桩 + `server.py` 胶水 + `solutions/engine.py`）—— 验收：`make smoke`
+- [x] P2 → `infer_lab/p2_tokenizer`（`tokenizer.py` 桩 + solution）—— 验收：`pytest tests/test_p2_tokenizer.py`
+- [x] P2b → `infer_lab/p2_embedding`（`embedding.py` 桩 + solution）—— 验收：`pytest tests/test_p2_embedding.py`
+- [x] P3 → `infer_lab/p3_attention`（`attention.py` 桩 + solution）—— 验收：`pytest tests/test_p3_attention.py`
+- [x] P3b → `infer_lab/p3_kv_cache`（`kv_cache.py` 桩 + solution）—— 验收：`pytest tests/test_p3_kv_cache.py`
+- [x] P4 → `infer_lab/p4_sampling`（`sampling.py` 桩 + solution）—— 验收：`pytest tests/test_p4_sampling.py`
+- [x] P4b → `infer_lab/p4_generate`（`generate.py` 桩 + solution）—— 验收：`pytest tests/test_p4_generate.py`
+- [x] P5 → `infer_lab/p5_toy`（`model.py`/`data.py` 桩 + `corpus.py` + `train.py`/`generate.py` 工作脚本 + solution）—— 验收：`make train-demo`
 
 无悬空项：每个阶段都有对应目录、README、验收命令；每个桩模块都有 `solutions/` 参考实现
 与 `tests/` 用例（默认跑 solution，`INFER_LAB_TARGET=user` 切骨架态）。
+以上勾稽项已全部在真实环境逐条核验通过（全量测试 98 passed、骨架态 50 passed +
+48 xfailed、`make e2e` 与 `make smoke` 端到端可跑），运行记录见
+[docs/demo-run-log.md](docs/demo-run-log.md)；勾稽本身由
+`tests/test_repo_artifacts.py` 自动守护。
 
 ## 推荐学习路径
 
