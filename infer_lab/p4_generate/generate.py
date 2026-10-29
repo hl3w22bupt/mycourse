@@ -14,8 +14,9 @@ TODO(学习者)：实现 ``GenerationConfig`` 与 ``generate``。
 
 ``generate(model, input_ids, config) -> torch.Tensor``：
 1. 校验 ``input_ids`` 是 2 维 ``(B, T)``、``max_new_tokens >= 1``；
-2. 循环 ``max_new_tokens`` 次：取最后一步 logits → ``sample_token`` 采样 →
-   拼回序列；全部 batch 命中 ``eos_id`` 时提前停止；
+2. 循环 ``max_new_tokens`` 次：取最后一步 logits → ``sample_token`` 采样
+   （批量时每行取**各自**采出的 id，不得把一条 id 广播给整个 batch）→
+   按行拼回序列；全部 batch 行都命中 ``eos_id`` 时提前停止；
 3. 返回完整序列 ``(B, T0 + 实际生成数)``（不包含 eos 之后的填充）。
 
 对照：参考实现见 ``solutions/generate.py``（采样函数复用 ``p4_sampling`` 的实现；

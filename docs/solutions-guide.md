@@ -27,8 +27,8 @@
 | P2b | `infer_lab/p2_embedding/embedding.py` | `solutions/embedding.py` | `tests/test_p2_embedding.py` | 同 token 不同位置可区分；`arange` 跟 `idx.device`；越界抛 `ValueError` | `pytest tests/test_p2_embedding.py` |
 | P3 | `infer_lab/p3_attention/attention.py` | `solutions/attention.py` | `tests/test_p3_attention.py` | **因果性**；**RoPE 相对性**；**GQA**；**缓存对拍 ≡ 全量重算** | `pytest tests/test_p3_attention.py` |
 | P3b | `infer_lab/p3_kv_cache/kv_cache.py` | `solutions/kv_cache.py` | `tests/test_p3_kv_cache.py` | `update` 返回全量可打分；`with kv:` 进出即复位；越界 `IndexError` | `pytest tests/test_p3_kv_cache.py` |
-| P4 | `infer_lab/p4_sampling/sampling.py` | `solutions/sampling.py` | `tests/test_p4_sampling.py` | 过滤用 `-inf` 且在 softmax 之前；top-k=1 ≡ argmax；同 seed 可复现 | `pytest tests/test_p4_sampling.py` |
-| P4b | `infer_lab/p4_generate/generate.py` | `solutions/generate.py` | `tests/test_p4_generate.py` | **use_cache=True ≡ False**；贪心 ≡ 手写 argmax 循环；全 batch 命中 eos 提前停 | `pytest tests/test_p4_generate.py` |
+| P4 | `infer_lab/p4_sampling/sampling.py` | `solutions/sampling.py` | `tests/test_p4_sampling.py` | 过滤用 `-inf` 且在 softmax 之前；top-k=1 ≡ argmax；同 seed 可复现；批量 `(B>1,V)` 返回每行一个 id 的张量（单序列保持 python int） | `pytest tests/test_p4_sampling.py` |
+| P4b | `infer_lab/p4_generate/generate.py` | `solutions/generate.py` | `tests/test_p4_generate.py` | **use_cache=True ≡ False**（含批量）；贪心 ≡ 手写 argmax 循环；每行采**各自**的 id（不广播）；全 batch 命中 eos 提前停 | `pytest tests/test_p4_generate.py` |
 | P5 | `infer_lab/p5_toy/model.py` + `data.py` | `solutions/model.py` + `solutions/data.py` | `tests/test_p5_train_generate.py` | 窗口右移一位当标签；loss 下降；checkpoint 存取往返 | `INFER_LAB_TARGET=user make train-demo` |
 
 ## 3. 照做五步法（每个模块都一样）

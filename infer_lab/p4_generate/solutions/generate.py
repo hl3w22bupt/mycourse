@@ -6,6 +6,8 @@
   手写一遍才知道采样参数到底作用在哪一步。
 - KV cache 的用法只有一句话：**首步喂整段 prompt，之后每步只喂 1 个新 token**，
   past_kv 由循环负责透传。
+- 批量解码：每行从**本行**的 logits 分布里采样各自的 next token —— 把一条 id
+  广播给整个 batch 会让所有序列生成完全相同的走向。
 - 提前停止：batch 场景某条序列先撞 eos，其它还在继续 —— 教学版用「全部命中才停」，
   足够展示思想；生产版会配合 padding + attention_mask 处理早停序列。
 """
@@ -35,13 +37,16 @@ def generate(model, input_ids: torch.Tensor, config: GenerationConfig) -> torch.
             use_cache=config.use_cache,
         )
         logits, past_kv = res[0], res[-1]
-        next_id = sample_token(
+        next_ids = sample_token(
             logits[:, -1, :],
             temperature=config.temperature,
             top_k=config.top_k,
             top_p=config.top_p,
         )
-        seq = torch.cat([seq, torch.full((seq.shape[0], 1), next_id, dtype=seq.dtype, device=seq.device)], dim=1)
+        if not torch.is_tensor(next_ids):  # 单序列（B=1）路径：sample_token 返回 python int
+            next_ids = torch.full((seq.shape[0],), next_ids, dtype=torch.long, device=seq.device)
+        column = next_ids.to(device=seq.device, dtype=seq.dtype).reshape(seq.shape[0], 1)
+        seq = torch.cat([seq, column], dim=1)
         if config.eos_id is not None:
             finished |= seq[:, -1] == config.eos_id
             if bool(finished.all()):
