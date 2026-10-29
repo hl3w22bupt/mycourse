@@ -18,12 +18,17 @@ TODO(学习者)：实现以下四个部分。
    ``n_rep == 1`` 时原样返回。
 
 4. ``CausalSelfAttention(n_embd, n_head, n_kv_head=None, dropout=0.0, bias=True)``：
-   - ``n_kv_head=None`` 视为 MHA（等于 n_head）；``n_kv_head < n_head`` 即 GQA；
-   - ``qkv_proj`` 一次线性投影出 ``q, k, v``；
+   - ``n_kv_head=None`` 视为 MHA（等于 n_head）；``n_kv_head < n_head`` 即 GQA
+     （要求 ``n_head % n_kv_head == 0``）；``head_dim = n_embd // n_head``；
+   - ``qkv_proj`` 一次线性投影出 ``q, k, v``，出参维度 ``n_head + 2 * n_kv_head`` 个 head_dim；
    - forward 签名：``forward(x, past_kv=None, use_cache=False) -> (out, new_kv)``；
      ``past_kv = (k_past, v_past)`` 形状 ``(B, n_kv_head, S, head_dim)``，为 None 表示无缓存；
    - 注意力打分：``q @ k^T / sqrt(head_dim)``，加因果掩码（当前位置只能看 ≤ 当前位置，
-     有缓存时列下标要加上过去长度 offset），softmax 后乘 ``v``。
+     有缓存时列下标要加上过去长度 offset），softmax 后乘 ``v``；
+   - 打分结果 reshape 回 ``(B, T, n_embd)`` 后过输出投影 ``out_proj``（+ 残差 dropout）。
+
+对照：参考实现见 ``solutions/attention.py``；RoPE 只转 q/k（v 不转）；
+有缓存时 cos/sin 取 ``[offset:]`` 这一段。
 
 验收：``pytest tests/test_p3_attention.py`` 全绿（含因果性 / RoPE 相对性 / GQA / 缓存对拍四组性质测试）。
 """

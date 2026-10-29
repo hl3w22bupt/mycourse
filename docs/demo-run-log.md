@@ -200,3 +200,49 @@ SMOKE_OK 框架部署端到端通过（起服务 → 生成非空 → chat 通�
   聚合吞吐 ≈550 tokens/s（客户端视角，含 HTTP 往返）。
 - 新增测试：`tests/test_p1_metrics.py`（口径与结构，桩注入）+
   `tests/test_repo_artifacts.py` 守护「framework 已填 / handrolled 预留」。
+
+## 10. solutions ↔ 骨架对齐收口 —— 逐模块对照与守护（2026-10-29 追加）
+
+「solutions 内逐模块参考实现 + 单测，与骨架 TODO 对齐，支撑用户照做与对照」节点：
+
+1. **骨架规格补齐**（此前只写在参考实现/单测里、照骨架做会踩坑的口径，全部回写进
+   骨架 docstring）：P1 engine 默认模型统一为 `models_cache/tiny-gpt2-toy`（并补
+   `engine_kind`/`param_count`/`library_versions` 元信息口径）；P2 tokenizer 补 `vocab`
+   属性（P5 存 checkpoint 依赖）；P2b embedding `forward` 补 `pos_offset`（KV cache
+   逐步解码的位置起点）；P3 attention 补输出投影 `out_proj`；P3b KVCache 补
+   `len(kv) == seq_len` 与 `IndexError`；P5 model/data 补 `config`/`block_size`/
+   `ids` 等脚本依赖属性。9 个 TODO 骨架统一补「对照：参考实现见 solutions/…」指引。
+2. **对齐守护测试**：新增 `tests/test_solutions_alignment.py`（44 用例）——成对存在、
+   公开接口与签名逐参数一致、规格常量（`SPECIAL_TOKENS` / 默认模型名）值一致、
+   solution 无残留桩、胶水不设 solution；并实测其能抓到漂移（临时删掉
+   `pos_offset` 即红，恢复即绿）。
+3. **对照手册**：新增 [docs/solutions-guide.md](solutions-guide.md)（模块级
+   骨架 ↔ solution ↔ 单测清单 + 照做五步法 + 易错点），README/ROADMAP 已挂链接。
+4. **顺手修复的复现性缺口**：`generate.py` CLI 原本不固定随机源，
+   `make generate-demo` 两次运行生成文本不同，README「seed=42 可复现」的口径
+   不成立，也无法稳定对照。现已默认 `--seed 42`（可覆盖），连续两次运行输出一致
+   （`GENERATION the little engine could run. the little engine could write. a ti`）。
+
+真实环境验证（Python 3.11.15 / uv，macOS arm64，MPS）：
+
+```
+$ make test        # solutions 参考实现态
+153 passed in 3.13s
+
+$ make test-user   # TODO 骨架态
+105 passed, 48 xfailed in 1.62s   # xfail 原因均为「待实现」
+
+$ pytest tests/test_solutions_alignment.py -q
+44 passed in 0.57s
+
+$ make e2e         # check-env → test → train-demo → generate-demo
+LOSS_IMPROVED yes
+✅ e2e 完成：环境自检 / 全量测试 / 训练 demo / 生成 demo 全部通过。
+
+$ make smoke       # P1 框架部署冒烟 + 指标留档（framework 槽位刷新，handrolled 仍预留）
+SMOKE_METRICS_SUMMARY {'requests': 5, ..., 'latency_ms_p50': 40.58, 'tokens_per_s': 591.42}
+SMOKE_OK 框架部署端到端通过（起服务 → 生成非空 → chat 通道 → 指标留档）
+```
+
+结论：solutions 与骨架 TODO 逐模块对齐且有守护测试；骨架态与参考实现态共用同一套
+单测，照骨架实现的代码可直接与参考实现互相替换验收。

@@ -11,6 +11,9 @@ TODO(学习者)：实现 ``check_env`` 与 ``format_report``。
    - ``ok``：布尔值，torch 与 numpy 都可用才为 True
 2. ``format_report(report)`` 把 dict 渲染成逐行 ``key: value`` 的可读文本。
 
+对照：参考实现见 ``solutions/env_check.py``（探测依赖用 ``importlib.util.find_spec``，
+读版本用 ``importlib.metadata.version``）。
+
 验收命令：``make check-env``（应打印报告且退出码为 0）。
 """
 

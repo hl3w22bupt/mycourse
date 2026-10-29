@@ -11,6 +11,10 @@ TODO(学习者)：实现 ``KVCache``。
 4. ``seq_len`` 属性：当前缓存长度（第 0 层 key 的时间维；全空时为 0）。
 5. ``reset()``：清空所有层 —— 新的一条生成请求开始前必须 reset，否则串请求。
 6. 上下文管理器协议：``with kv:`` 等价于进入时 ``reset()``，方便「一条请求一个作用域」。
+7. ``__len__``：等价于 ``seq_len``（``len(kv)`` 直接当缓存长度用）。
+   ``update``/``get`` 的 ``layer_idx`` 越界时抛 ``IndexError``。
+
+对照：参考实现见 ``solutions/kv_cache.py``。
 
 验收：``pytest tests/test_p3_kv_cache.py`` 全绿（核心性质：带缓存逐 token 解码 ≡ 全量重算）。
 """

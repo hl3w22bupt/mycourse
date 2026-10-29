@@ -16,6 +16,16 @@ TODO(学习者)：实现 ``FrameworkEngine``。接口保持与真实服务解耦
 4. ``chat(messages, ...)``：把 OpenAI 风格 messages（``[{"role","content"}]``）
    模板化成单条 prompt（``Role: content`` 逐行 + ``Assistant:`` 结尾）后走 ``complete``。
 5. ``model_name`` 属性。
+6. （推荐，供指标记录用）只读元信息属性：``engine_kind``（如 ``"transformers"``）、
+   ``param_count``（未加载时为 ``None``）、``library_versions``（dict）——
+   服务端 ``GET /v1/engine/info`` 会用 ``getattr`` 兜底透传，缺了不报错，
+   但 ``make smoke`` 写指标记录时参数量/版本号就没了。
+
+对照：参考实现见 ``solutions/engine.py``；注意两个易错点——
+- 返回的 ``text`` 要剥掉 prompt（只留续写部分），``prompt_tokens``/``completion_tokens``
+  分别按 prompt 长度与续写长度计；
+- ``do_sample = temperature > 0``，greedy（``temperature=0``）时不要把 ``top_k/top_p``
+  传给 ``generate``。
 
 验收：``pytest tests/test_p1_framework.py`` 全绿（用桩引擎测协议，不需要真模型）；
 ``make smoke`` 用真模型端到端验证。
@@ -23,11 +33,13 @@ TODO(学习者)：实现 ``FrameworkEngine``。接口保持与真实服务解耦
 
 from __future__ import annotations
 
+DEFAULT_MODEL_NAME = "models_cache/tiny-gpt2-toy"   # `make bootstrap` 离线自建的本地模型
+
 
 class FrameworkEngine:
     def __init__(
         self,
-        model_name: str = "sshleifer/tiny-gpt2",
+        model_name: str = DEFAULT_MODEL_NAME,
         device: str | None = None,
         seed: int = 42,
     ) -> None:

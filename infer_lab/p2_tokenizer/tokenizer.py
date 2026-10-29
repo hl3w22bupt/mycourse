@@ -12,7 +12,11 @@ TODO(学习者)：按下面的接口要求实现 ``CharTokenizer``。
 4. ``decode(ids, skip_special=True)``：id 列表 → 文本；
    ``skip_special=True`` 时跳过 special token，否则用其字面量占位。
 5. ``pad_batch(sequences)``：把若干 id 序列 pad 到同长，返回 ``(padded: list[list[int]], lengths: list[int])``。
-6. ``vocab_size`` 属性；``save(path)`` / ``load(path)`` 用 JSON 存取词表。
+6. ``vocab`` 属性：返回**词表副本**（``dict[str, int]``，改它不能影响内部状态）；
+   P5 训练脚本存 checkpoint 时会把整个词表写进去。
+7. ``vocab_size`` 属性；``save(path)`` / ``load(path)`` 用 JSON 存取词表。
+
+对照：参考实现见 ``solutions/tokenizer.py``。
 
 验收：``pytest tests/test_p2_tokenizer.py`` 全绿。
 """

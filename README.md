@@ -8,7 +8,10 @@
   生成循环 / TinyGPT 训练闭环，与框架基线对拍验证正确性。
 
 完整阶段规划见 **[ROADMAP.md](ROADMAP.md)**；框架版 vs 手搓版的深度对比见
-**[docs/comparison-framework-vs-handrolled.md](docs/comparison-framework-vs-handrolled.md)**。
+**[docs/comparison-framework-vs-handrolled.md](docs/comparison-framework-vs-handrolled.md)**；
+逐模块「骨架 ↔ 参考实现 ↔ 单测」对照清单见
+**[docs/solutions-guide.md](docs/solutions-guide.md)**（由 `tests/test_solutions_alignment.py`
+自动守护，接口漂移会挂测试）。
 
 ## 快速开始
 
@@ -69,7 +72,8 @@ $EDITOR infer_lab/p3_attention/solutions/attention.py
 | P5 | `infer_lab/p5_toy/model.py` + `data.py` | `INFER_LAB_TARGET=user make train-demo` |
 
 每个阶段目录都有自己的 `README.md`（学习目标 / 任务 / 验收命令）；
-每个 TODO 桩都有 `solutions/` 参考实现。
+每个 TODO 桩都有 `solutions/` 参考实现，两者的公开接口逐参数一致
+（`tests/test_solutions_alignment.py` 守护），照骨架写的代码可直接与参考实现互相替换。
 
 ## 命令总表
 
@@ -103,8 +107,10 @@ $EDITOR infer_lab/p3_attention/solutions/attention.py
 │   ├── p4_generate/         # P4 自回归生成循环
 │   └── p5_toy/              # P5 TinyGPT 训练 + 生成闭环
 ├── tests/                   # 双模式测试（solution 全绿 / user 态 XFAIL 待实现）
+│                            # + 骨架/产物守护（test_skeleton_todos / test_repo_artifacts）
+│                            # + solutions↔骨架对齐守护（test_solutions_alignment）
 ├── scripts/                 # check-env / smoke 脚本
-└── docs/                    # 对比笔记 + demo 运行记录 + 指标记录位（docs/metrics/）
+└── docs/                    # 对比笔记 + solutions 对照手册 + demo 运行记录 + 指标记录位（docs/metrics/）
 ```
 
 ## 约定与 FAQ

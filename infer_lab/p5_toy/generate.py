@@ -4,6 +4,8 @@
     make generate-demo
     .venv/bin/python -m infer_lab.p5_toy.generate --ckpt runs/toy/ckpt.pt \
         --prompt "the little engine" --max-new-tokens 80
+
+生成默认固定 seed=42（temperature>0 的采样也逐次可复现），换 seed 换一种随机走向。
 """
 
 from __future__ import annotations
@@ -12,7 +14,7 @@ import argparse
 
 import torch
 
-from ..common.device import pick_device
+from ..common.device import pick_device, seed_everything
 from ..p4_generate.solutions.generate import GenerationConfig, generate as autoregress
 from .train import load_checkpoint
 
@@ -25,8 +27,10 @@ def main() -> None:
     p.add_argument("--temperature", type=float, default=0.8)
     p.add_argument("--top-k", type=int, default=20)
     p.add_argument("--device", default="auto")
+    p.add_argument("--seed", type=int, default=42, help="固定随机源，保证同 ckpt 同参数输出可复现")
     args = p.parse_args()
 
+    seed_everything(args.seed)
     device = pick_device(args.device)
     model, tokenizer = load_checkpoint(args.ckpt, device)
 

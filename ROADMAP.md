@@ -62,17 +62,21 @@
 
 无悬空项：每个阶段都有对应目录、README、验收命令；每个桩模块都有 `solutions/` 参考实现
 与 `tests/` 用例（默认跑 solution，`INFER_LAB_TARGET=user` 切骨架态）。
-以上勾稽项已全部在真实环境逐条核验通过（全量测试 98 passed、骨架态 50 passed +
-48 xfailed、`make e2e` 与 `make smoke` 端到端可跑），运行记录见
-[docs/demo-run-log.md](docs/demo-run-log.md)；勾稽本身由
-`tests/test_repo_artifacts.py` 自动守护。
+模块级「骨架 ↔ 参考实现 ↔ 单测」对照清单见
+[docs/solutions-guide.md](docs/solutions-guide.md)；勾稽与对齐由两套守护测试自动把关：
+`tests/test_repo_artifacts.py`（文档/指标产物）与 `tests/test_solutions_alignment.py`
+（成对存在、公开接口与签名逐参数一致、solution 无残留桩、胶水不设 solution）。
+以上勾稽项已全部在真实环境逐条核验通过（全量测试全绿、骨架态未实现用例全部 XFAIL
+「待实现」、`make e2e` 与 `make smoke` 端到端可跑），运行记录见
+[docs/demo-run-log.md](docs/demo-run-log.md)。
 
 ## 推荐学习路径
 
 1. `make check-env` → 确认环境（P0）。
 2. `make smoke` → 先玩框架基线，对「一条 prompt 进、一段文本出」有体感（P1）。
 3. 按 P2 → P2b → P3 → P3b → P4 → P4b 顺序手搓，每个模块：读 docstring 的 TODO →
-   实现 → `pytest tests/test_<模块>.py -q` 跑绿。
+   实现 → `pytest tests/test_<模块>.py -q` 跑绿；卡住或做完都翻
+   [docs/solutions-guide.md](docs/solutions-guide.md) 的对照清单找参考实现比对。
 4. `INFER_LAB_TARGET=user make train-demo` → 用**你自己的**实现跑训练闭环（P5）。
 5. 读 [docs/comparison-framework-vs-handrolled.md](docs/comparison-framework-vs-handrolled.md)
    把手搓版与框架版逐维度对拍，回头重看 P1 的 `model.generate` 参数。

@@ -21,6 +21,9 @@ TODO(学习者)：实现以下函数。全部只动最后一维 logits，输入�
    - 依次做 temperature 缩放 → top-k → top-p 过滤 → softmax → 按概率采 1 个 id；
    - 返回 python ``int``（最后一个维度上的选择）。
 
+对照：参考实现见 ``solutions/sampling.py``；过滤用 ``-inf``（不是 0），
+必须发生在 softmax 之前。
+
 验收：``pytest tests/test_p4_sampling.py`` 全绿。
 """
 

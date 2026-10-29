@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "description": "推理指标对拍记录：`framework` 槽位由 `make smoke` 自动写入（框架部署基线），`handrolled` 槽位预留，待手搓引擎（P2-P5）按同协议出数后回填，供逐字段对比。",
-  "updated_at": "2026-10-29T10:29:05Z",
+  "updated_at": "2026-10-29T10:52:02Z",
   "protocol": {
     "prompt": "the little engine could",
     "max_tokens": 24,
@@ -25,36 +25,36 @@
         "index": 0,
         "prompt_tokens": 4,
         "completion_tokens": 24,
-        "latency_ms": 53.52,
-        "tokens_per_s": 448.43
+        "latency_ms": 44.1,
+        "tokens_per_s": 544.22
       },
       {
         "index": 1,
         "prompt_tokens": 4,
         "completion_tokens": 24,
-        "latency_ms": 44.5,
-        "tokens_per_s": 539.33
+        "latency_ms": 40.58,
+        "tokens_per_s": 591.42
       },
       {
         "index": 2,
         "prompt_tokens": 4,
         "completion_tokens": 24,
-        "latency_ms": 44.94,
-        "tokens_per_s": 534.05
+        "latency_ms": 41.78,
+        "tokens_per_s": 574.44
       },
       {
         "index": 3,
         "prompt_tokens": 4,
         "completion_tokens": 24,
-        "latency_ms": 40.07,
-        "tokens_per_s": 598.95
+        "latency_ms": 37.93,
+        "tokens_per_s": 632.74
       },
       {
         "index": 4,
         "prompt_tokens": 4,
         "completion_tokens": 24,
-        "latency_ms": 35.05,
-        "tokens_per_s": 684.74
+        "latency_ms": 38.51,
+        "tokens_per_s": 623.21
       }
     ],
     "summary": {
@@ -62,11 +62,11 @@
       "prompt_tokens": 4,
       "completion_tokens_per_request": 24,
       "completion_tokens_total": 120,
-      "latency_ms_avg": 43.62,
-      "latency_ms_p50": 44.5,
-      "latency_ms_min": 35.05,
-      "latency_ms_max": 53.52,
-      "tokens_per_s": 550.26
+      "latency_ms_avg": 40.58,
+      "latency_ms_p50": 40.58,
+      "latency_ms_min": 37.93,
+      "latency_ms_max": 44.1,
+      "tokens_per_s": 591.42
     }
   },
   "handrolled": {

@@ -14,8 +14,9 @@ import os
 
 import torch
 
-DEFAULT_LOCAL_MODEL = "models_cache/tiny-gpt2-toy"   # `make bootstrap` 的产物（离线可复现）
-DEFAULT_HUB_MODEL = "sshleifer/tiny-gpt2"            # 本地没有时回退到 Hub（需网络）
+from ..engine import DEFAULT_MODEL_NAME  # 单一事实来源：默认模型规格见骨架文件
+
+DEFAULT_HUB_MODEL = "sshleifer/tiny-gpt2"   # 本地没有时回退到 Hub（需网络）
 
 
 def _pick_device(preference: str | None) -> torch.device:
@@ -40,7 +41,7 @@ class FrameworkEngine:
 
     def __init__(
         self,
-        model_name: str = DEFAULT_LOCAL_MODEL,
+        model_name: str = DEFAULT_MODEL_NAME,
         device: str | None = None,
         seed: int = 42,
     ) -> None:

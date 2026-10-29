@@ -18,6 +18,9 @@ TODO(学习者)：实现 ``GenerationConfig`` 与 ``generate``。
    拼回序列；全部 batch 命中 ``eos_id`` 时提前停止；
 3. 返回完整序列 ``(B, T0 + 实际生成数)``（不包含 eos 之后的填充）。
 
+对照：参考实现见 ``solutions/generate.py``（采样函数复用 ``p4_sampling`` 的实现；
+``GenerationConfig`` 直接复用本文件定义的 dataclass，不要另写一份）。
+
 验收：``pytest tests/test_p4_generate.py`` 全绿
 （核心性质：use_cache=True 与 False 逐步对拍一致；贪心模式 ≡ 手写 argmax 循环）。
 """
