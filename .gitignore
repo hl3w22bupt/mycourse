@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# pytest / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# 运行产物：checkpoint、日志、演示输出
+runs/
+!runs/.gitkeep
+*.pt
+*.ckpt
+*.log
+
+# 模型缓存（框架部署演示会下载 tiny 模型）
+models_cache/
+.cache/
+
+# 系统 / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# MyRD 平台会话级注入的脚手架（skills/CLAUDE.md/mcp.json，含本机路径，不入项目仓库）
+.myrd-platform/

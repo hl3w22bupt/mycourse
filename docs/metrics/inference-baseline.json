@@ -1,0 +1,348 @@
+{
+  "schema_version": 2,
+  "description": "推理指标对拍记录：`framework` 槽位由 `make smoke` 自动写入（框架部署基线），`handrolled` 槽位由 `scripts/measure_handrolled.py` 按同协议回填（手搓引擎），顶层 `batch` 节是 B>1 批量生成对拍（两边 in-process 计时），供逐字段对比。",
+  "updated_at": "2026-10-29T12:17:13Z",
+  "protocol": {
+    "prompt": "the little engine could",
+    "max_tokens": 24,
+    "requests": 5,
+    "sampling": "greedy(temperature=0)",
+    "latency_view": "client-side(含 HTTP 往返)",
+    "tokens_per_s": "completion_tokens / latency_s"
+  },
+  "framework": {
+    "engine": "transformers",
+    "model": "models_cache/tiny-gpt2-toy",
+    "param_count": 105920,
+    "device": "mps",
+    "library_versions": {
+      "torch": "2.15.0",
+      "transformers": "5.21.1"
+    },
+    "sample_text": "run . the little engine could think . the little engine could read . the little engine could write . a tiny model can",
+    "requests": [
+      {
+        "index": 0,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 34.32,
+        "tokens_per_s": 699.3
+      },
+      {
+        "index": 1,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 31.69,
+        "tokens_per_s": 757.34
+      },
+      {
+        "index": 2,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 31.62,
+        "tokens_per_s": 759.01
+      },
+      {
+        "index": 3,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 31.64,
+        "tokens_per_s": 758.53
+      },
+      {
+        "index": 4,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 31.59,
+        "tokens_per_s": 759.73
+      }
+    ],
+    "summary": {
+      "requests": 5,
+      "prompt_tokens": 4,
+      "completion_tokens_per_request": 24,
+      "completion_tokens_total": 120,
+      "latency_ms_avg": 32.17,
+      "latency_ms_p50": 31.64,
+      "latency_ms_min": 31.59,
+      "latency_ms_max": 34.32,
+      "tokens_per_s": 745.99
+    }
+  },
+  "handrolled": {
+    "engine": "infer-lab handrolled (P2-P5 TinyGPT)",
+    "model": "runs/toy/ckpt.pt",
+    "param_count": 99584,
+    "device": "mps",
+    "library_versions": {
+      "torch": "2.15.0"
+    },
+    "sample_text": " run. the little engine ",
+    "requests": [
+      {
+        "index": 0,
+        "prompt_tokens": 23,
+        "completion_tokens": 24,
+        "latency_ms": 61.98,
+        "tokens_per_s": 387.22
+      },
+      {
+        "index": 1,
+        "prompt_tokens": 23,
+        "completion_tokens": 24,
+        "latency_ms": 60.08,
+        "tokens_per_s": 399.47
+      },
+      {
+        "index": 2,
+        "prompt_tokens": 23,
+        "completion_tokens": 24,
+        "latency_ms": 58.82,
+        "tokens_per_s": 408.02
+      },
+      {
+        "index": 3,
+        "prompt_tokens": 23,
+        "completion_tokens": 24,
+        "latency_ms": 65.1,
+        "tokens_per_s": 368.66
+      },
+      {
+        "index": 4,
+        "prompt_tokens": 23,
+        "completion_tokens": 24,
+        "latency_ms": 57.97,
+        "tokens_per_s": 414.01
+      }
+    ],
+    "summary": {
+      "requests": 5,
+      "prompt_tokens": 23,
+      "completion_tokens_per_request": 24,
+      "completion_tokens_total": 120,
+      "latency_ms_avg": 60.79,
+      "latency_ms_p50": 60.08,
+      "latency_ms_min": 57.97,
+      "latency_ms_max": 65.1,
+      "tokens_per_s": 394.8
+    },
+    "protocol_delta": {
+      "latency_view": "in-process(无 HTTP 往返；framework 槽位为客户端视角含 HTTP)",
+      "sampling": "greedy ≡ top_k=1（分布退化成点质量，温度不起作用）",
+      "tokenizer": "字符级：同 prompt = 23 tokens（framework WordLevel = 4）",
+      "model_source": "make train-demo 的 P5 手搓训练产物（与 framework 侧 tiny-gpt2 同为玩具语料同规模训练，但权重互不通用）"
+    },
+    "backfill_script": "scripts/measure_handrolled.py",
+    "backfilled_at": "2026-10-29T12:11:25Z"
+  },
+  "batch": {
+    "description": "B>1 批量生成对拍：同一 prompt 复制 B 行、greedy、各生成 max_tokens 个 token，两边 in-process 计时 —— 回答「批量解码赚不赚、赚多少」。",
+    "protocol": {
+      "prompt": "the little engine could",
+      "max_tokens": 24,
+      "batch_sizes": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "sampling": "greedy(框架 do_sample=False / 手搓 top_k=1)",
+      "latency_view": "in-process(无 HTTP 往返)",
+      "latency_aggregation": "每尺寸热身后重复 3 次取最小延迟",
+      "tokens_per_s": "batch 总补全 token / 延迟秒（整批吞吐）"
+    },
+    "framework": {
+      "engine": "transformers",
+      "model": "models_cache/tiny-gpt2-toy",
+      "batch_sizes": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "rows": [
+        {
+          "batch_size": 1,
+          "completion_tokens_total": 24,
+          "latency_ms": 27.6,
+          "tokens_per_s": 869.57
+        },
+        {
+          "batch_size": 2,
+          "completion_tokens_total": 48,
+          "latency_ms": 33.59,
+          "tokens_per_s": 1429.0
+        },
+        {
+          "batch_size": 4,
+          "completion_tokens_total": 96,
+          "latency_ms": 34.73,
+          "tokens_per_s": 2764.18
+        },
+        {
+          "batch_size": 8,
+          "completion_tokens_total": 192,
+          "latency_ms": 34.61,
+          "tokens_per_s": 5547.53
+        },
+        {
+          "batch_size": 16,
+          "completion_tokens_total": 384,
+          "latency_ms": 35.42,
+          "tokens_per_s": 10841.33
+        }
+      ],
+      "summary": {
+        "batch_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "rows": [
+          {
+            "batch_size": 1,
+            "latency_ms": 27.6,
+            "completion_tokens_total": 24,
+            "tokens_per_s": 869.57,
+            "tokens_per_s_per_sequence": 869.57,
+            "speedup_vs_b1": 1.0
+          },
+          {
+            "batch_size": 2,
+            "latency_ms": 33.59,
+            "completion_tokens_total": 48,
+            "tokens_per_s": 1429.0,
+            "tokens_per_s_per_sequence": 714.5,
+            "speedup_vs_b1": 1.64
+          },
+          {
+            "batch_size": 4,
+            "latency_ms": 34.73,
+            "completion_tokens_total": 96,
+            "tokens_per_s": 2764.18,
+            "tokens_per_s_per_sequence": 691.04,
+            "speedup_vs_b1": 3.18
+          },
+          {
+            "batch_size": 8,
+            "latency_ms": 34.61,
+            "completion_tokens_total": 192,
+            "tokens_per_s": 5547.53,
+            "tokens_per_s_per_sequence": 693.44,
+            "speedup_vs_b1": 6.38
+          },
+          {
+            "batch_size": 16,
+            "latency_ms": 35.42,
+            "completion_tokens_total": 384,
+            "tokens_per_s": 10841.33,
+            "tokens_per_s_per_sequence": 677.58,
+            "speedup_vs_b1": 12.47
+          }
+        ],
+        "best_tokens_per_s": 10841.33,
+        "best_batch_size": 16
+      }
+    },
+    "handrolled": {
+      "engine": "infer-lab handrolled (P2-P5 TinyGPT)",
+      "model": "runs/toy/ckpt.pt",
+      "batch_sizes": [
+        1,
+        2,
+        4,
+        8,
+        16
+      ],
+      "rows": [
+        {
+          "batch_size": 1,
+          "completion_tokens_total": 24,
+          "latency_ms": 57.85,
+          "tokens_per_s": 414.87
+        },
+        {
+          "batch_size": 2,
+          "completion_tokens_total": 48,
+          "latency_ms": 53.66,
+          "tokens_per_s": 894.52
+        },
+        {
+          "batch_size": 4,
+          "completion_tokens_total": 96,
+          "latency_ms": 53.04,
+          "tokens_per_s": 1809.95
+        },
+        {
+          "batch_size": 8,
+          "completion_tokens_total": 192,
+          "latency_ms": 53.21,
+          "tokens_per_s": 3608.34
+        },
+        {
+          "batch_size": 16,
+          "completion_tokens_total": 384,
+          "latency_ms": 53.66,
+          "tokens_per_s": 7156.17
+        }
+      ],
+      "summary": {
+        "batch_sizes": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "rows": [
+          {
+            "batch_size": 1,
+            "latency_ms": 57.85,
+            "completion_tokens_total": 24,
+            "tokens_per_s": 414.87,
+            "tokens_per_s_per_sequence": 414.87,
+            "speedup_vs_b1": 1.0
+          },
+          {
+            "batch_size": 2,
+            "latency_ms": 53.66,
+            "completion_tokens_total": 48,
+            "tokens_per_s": 894.52,
+            "tokens_per_s_per_sequence": 447.26,
+            "speedup_vs_b1": 2.16
+          },
+          {
+            "batch_size": 4,
+            "latency_ms": 53.04,
+            "completion_tokens_total": 96,
+            "tokens_per_s": 1809.95,
+            "tokens_per_s_per_sequence": 452.49,
+            "speedup_vs_b1": 4.36
+          },
+          {
+            "batch_size": 8,
+            "latency_ms": 53.21,
+            "completion_tokens_total": 192,
+            "tokens_per_s": 3608.34,
+            "tokens_per_s_per_sequence": 451.04,
+            "speedup_vs_b1": 8.7
+          },
+          {
+            "batch_size": 16,
+            "latency_ms": 53.66,
+            "completion_tokens_total": 384,
+            "tokens_per_s": 7156.17,
+            "tokens_per_s_per_sequence": 447.26,
+            "speedup_vs_b1": 17.25
+          }
+        ],
+        "best_tokens_per_s": 7156.17,
+        "best_batch_size": 16
+      }
+    }
+  }
+}
