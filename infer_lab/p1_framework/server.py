@@ -71,6 +71,26 @@ def create_app(engine=None) -> FastAPI:
             "data": [{"id": engine.model_name, "object": "model", "owned_by": "infer-lab"}],
         }
 
+    @app.get("/v1/engine/info")
+    def engine_info():
+        """infer-lab 扩展端点（非 OpenAI 协议）：引擎元信息，供框架侧指标记录用。
+
+        只透传引擎**实际暴露**的属性（``getattr`` 兜底）：桩引擎、手搓引擎没有的
+        字段自动缺席，所以协议测试（桩引擎）与真实 transformers 引擎共用同一路由。
+        """
+        info: dict = {"model": engine.model_name}
+        for attr, key in (
+            ("engine_kind", "engine"),
+            ("device", "device"),
+            ("param_count", "param_count"),
+            ("library_versions", "library_versions"),
+        ):
+            value = getattr(engine, attr, None)
+            if value is None:
+                continue
+            info[key] = str(value) if key == "device" else value
+        return info
+
     def _payload(text: str, prompt_tokens: int, completion_tokens: int) -> dict:
         return {
             "prompt_tokens": prompt_tokens,

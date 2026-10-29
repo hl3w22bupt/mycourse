@@ -18,14 +18,43 @@
 
 ## 验收命令
 ```bash
-make smoke    # 退出码 0，输出 SMOKE_OK，且生成文本非空
+make smoke    # 退出码 0，输出 SMOKE_OK，且生成文本非空 + 指标记录已写入
 pytest tests/test_p1_framework.py -q   # 协议用例（桩引擎，不需要真模型）
+pytest tests/test_p1_metrics.py -q     # 指标口径与记录结构（桩注入，不需要真模型）
 ```
 
 想换真实模型/更高吞吐，可另起 vLLM（接口同为 OpenAI 兼容）：
 ```bash
 pip install vllm && vllm serve Qwen/Qwen2.5-0.5B-Instruct --port 8000
 ```
+
+## 指标记录位（框架侧基线，供对拍）
+
+`make smoke` 在冒烟断言**全部通过**后，按对拍协议（greedy 采样、同 prompt、同
+`max_tokens`、默认 5 次请求）再计时补打几发补全，把框架侧指标写进
+[docs/metrics/inference-baseline.json](../../docs/metrics/inference-baseline.json)：
+
+| 字段 | 含义 |
+|------|------|
+| `protocol` | 对拍口径：prompt / max_tokens / 请求数 / greedy / 延迟视角（客户端含 HTTP 往返） |
+| `framework.summary` | 平均 / p50 延迟、聚合吞吐 `tokens_per_s`、token 用量 |
+| `framework.requests` | 每请求的 `prompt_tokens` / `completion_tokens` / `latency_ms` / `tokens_per_s` |
+| `framework.sample_text` | 首条 greedy 生成样本（两边的文本可以直接比对） |
+| `handrolled` | **预留槽位**（各字段 null + `todo` 说明）：手搓引擎按同口径出数后回填 |
+
+实现要点：
+
+- **只有冒烟通过的运行才写记录**：生成断言失败直接退出、不落盘，避免留下脏基线；
+- 采样固定 greedy（`temperature=0`）、延迟为客户端视角 —— 口径写进 `protocol` 字段，
+  两边（框架 / 手搓）用同一协议出数才有可比性；
+- 元信息（device / 参数量 / torch & transformers 版本）来自服务端
+  `GET /v1/engine/info`（infer-lab 扩展端点，非 OpenAI 协议字段；引擎没暴露的属性自动缺席）；
+- 记录随仓库提交留档，`tests/test_repo_artifacts.py` 有守护测试锁定
+  「framework 槽位已填、handrolled 槽位预留」的形态。
+
+对拍回填方式：手搓引擎（P2-P5）能出数后，按 `protocol` 同口径跑同样的请求，把结果
+填进 `handrolled` 槽位即可逐字段对比延迟与吞吐。**不要动 `framework` 槽位**——那是
+框架基线，重跑 `make smoke` 会自动刷新它。
 
 ## 参考实现
 `infer_lab/p1_framework/solutions/engine.py`

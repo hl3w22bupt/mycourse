@@ -24,9 +24,11 @@ make test
 make train-demo       # 玩具语料训练，loss 明显下降
 make generate-demo    # 加载 checkpoint 生成文本
 
-# 3) P1 框架部署：单条命令起 OpenAI 兼容服务 + 冒烟
+# 3) P1 框架部署：单条命令起 OpenAI 兼容服务 + 冒烟 + 指标留档
 make bootstrap        # 离线自建 tiny-gpt2（transformers 构建 + 玩具语料微调，幂等）
-make smoke            # 起服务 → 生成非空文本 → 断言通过（全离线可跑）
+make smoke            # 起服务 → 生成非空断言 → 写框架侧指标记录 → 关服务（全离线可跑）
+# 指标记录落在 docs/metrics/inference-baseline.json：framework 槽位自动写入，
+# handrolled 槽位预留 —— 手搓引擎（P2-P5）对拍后按同口径回填
 # 或手动：make serve   然后另开终端 curl http://127.0.0.1:8000/v1/completions ...
 
 # 4) 端到端串联（环境 → 测试 → 训练 → 生成）
@@ -81,7 +83,7 @@ $EDITOR infer_lab/p3_attention/solutions/attention.py
 | `make generate-demo` | P5 生成 demo（加载 checkpoint） |
 | `make bootstrap` | P1 离线自建 tiny-gpt2（幂等） |
 | `make serve` | P1 起本地 OpenAI 兼容服务 |
-| `make smoke` | P1 一键冒烟（起服务→请求→断言→收尾） |
+| `make smoke` | P1 一键冒烟（起服务→请求→断言→收尾）+ 写框架侧指标记录 |
 | `make e2e` | 一键串联：check-env → test → train-demo → generate-demo |
 
 ## 仓库结构
@@ -102,7 +104,7 @@ $EDITOR infer_lab/p3_attention/solutions/attention.py
 │   └── p5_toy/              # P5 TinyGPT 训练 + 生成闭环
 ├── tests/                   # 双模式测试（solution 全绿 / user 态 XFAIL 待实现）
 ├── scripts/                 # check-env / smoke 脚本
-└── docs/                    # 对比笔记 + demo 运行记录
+└── docs/                    # 对比笔记 + demo 运行记录 + 指标记录位（docs/metrics/）
 ```
 
 ## 约定与 FAQ
@@ -114,3 +116,8 @@ $EDITOR infer_lab/p3_attention/solutions/attention.py
 - **生成有随机性**：采样受 seed 控制；`train-demo`/`generate-demo` 固定 seed=42，可复现。
 - **冒烟没网？** P1 默认走 `make bootstrap` 的离线自建模型，无需下载；官方权重
   `sshleifer/tiny-gpt2` 只是可选项。
+- **指标记录位怎么用？** `make smoke` 冒烟通过后自动把框架侧延迟 / 吞吐 /
+  token 用量写进 [docs/metrics/inference-baseline.json](docs/metrics/inference-baseline.json)
+  的 `framework` 槽位；`handrolled` 槽位预留，等 P2-P5 手搓引擎能按同口径
+  （greedy、同 prompt / max_tokens / 请求数）出数后回填，两边逐字段对比。
+  详见 [P1 README](infer_lab/p1_framework/README.md)。

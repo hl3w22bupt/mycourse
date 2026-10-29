@@ -37,6 +37,11 @@
 
 > P3/P4 的测试把这三件事写成了「对拍」：**缓存版与全量重算版输出必须逐 token 一致** ——
 > 加速不能改变结果，这是推理引擎正确性的底线。
+>
+> 实测数字有留档：`make smoke` 冒烟通过后按对拍协议（greedy、同 prompt、同 max_tokens、
+> 5 次请求）把框架版延迟 / 吞吐写进
+> [metrics/inference-baseline.json](metrics/inference-baseline.json) 的 `framework` 槽位；
+> `handrolled` 槽位预留 —— 手搓版做完上面 1/2/3 的延迟实验后按同口径回填，即可逐字段对比。
 
 ## 4. 控制粒度对比
 
@@ -54,7 +59,10 @@
 1. **P0**：`make check-env` 确认环境。
 2. **P1 先跑框架基线**：`make bootstrap`（离线自建 tiny-gpt2：transformers 构建 + 框架训练
    循环微调 300 步，本身就是「框架版训练」的对照组）→ `make smoke`。记下冒烟输出里的
-   `usage`（prompt_tokens/completion_tokens）——之后手搓版要能对上这个语义。
+   `usage`（prompt_tokens/completion_tokens）——之后手搓版要能对上这个语义；
+   冒烟还会把框架侧延迟 / 吞吐自动写进
+   [metrics/inference-baseline.json](metrics/inference-baseline.json)（`handrolled`
+   槽位等手搓版按同口径回填）。
 3. **P2 tokenizer** → `pytest tests/test_p2_tokenizer.py -q` 绿。
 4. **P2b embedding** → 重点读懂 `pos_offset` 注释（生成错位的头号坑）。
 5. **P3 attention**：先过 `build_rope_cache`/`apply_rope`，再写 `CausalSelfAttention`；

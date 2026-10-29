@@ -117,3 +117,39 @@ def test_chat_prompt_renderer():
         [{"role": "user", "content": "你好"}, {"role": "assistant", "content": "你好！"}]
     )
     assert "User: 你好" in prompt and prompt.endswith("Assistant:")
+
+
+class MetadataEngine(StubEngine):
+    """带元信息的引擎桩：模拟真实 transformers 引擎暴露的指标用属性。"""
+
+    engine_kind = "transformers"
+    device = "mps"
+    param_count = 105920
+    library_versions = {"torch": "2.15.0", "transformers": "5.21.1"}
+
+
+def _client_with(engine):
+    from fastapi.testclient import TestClient
+
+    from infer_lab.p1_framework.server import create_app
+
+    return TestClient(create_app(engine))
+
+
+def test_engine_info_surfaces_engine_metadata():
+    tc = _client_with(MetadataEngine())
+    body = tc.get("/v1/engine/info").json()
+    assert body == {
+        "model": "stub-tiny-gpt2",
+        "engine": "transformers",
+        "device": "mps",
+        "param_count": 105920,
+        "library_versions": {"torch": "2.15.0", "transformers": "5.21.1"},
+    }
+
+
+def test_engine_info_degrades_to_model_only_without_metadata(client):
+    """桩引擎没暴露元信息属性时端点仍可用（字段自动缺席，不 500）。"""
+    tc, _ = client
+    body = tc.get("/v1/engine/info").json()
+    assert body == {"model": "stub-tiny-gpt2"}

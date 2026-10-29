@@ -30,8 +30,11 @@
 ### P1 框架部署与推理基线（先框架）
 - **学习目标**：用成熟框架跑通「加载 → 推理 → 服务化」，建立可对拍的基线。
 - **产出物**：`FrameworkEngine`（transformers 后端）+ FastAPI OpenAI 兼容服务 + 冒烟脚本
-  + `make bootstrap` 离线自建 tiny-gpt2（框架训练循环演示，不依赖网络）。
-- **DoD**：`make serve` + `make smoke` 单机可复现，冒烟生成文本非空；
+  + `make bootstrap` 离线自建 tiny-gpt2（框架训练循环演示，不依赖网络）
+  + 指标记录位（`metrics.py` + `GET /v1/engine/info`：冒烟通过后写
+  `docs/metrics/inference-baseline.json` 的 `framework` 槽位，`handrolled` 槽位预留对拍）。
+- **DoD**：`make serve` + `make smoke` 单机可复现，冒烟生成文本非空，指标记录
+  `framework` 槽位有数、`handrolled` 槽位保持预留；
   `pytest tests/test_p1_framework.py` 协议用例全绿（桩引擎，无需真模型）。
 
 ### P2-P4 手搓核心（后手搓）
@@ -48,7 +51,7 @@
 ## 路线图 ↔ 代码骨架勾稽表（对照清单）
 
 - [x] P0 → `infer_lab/p0_env`（`env_check.py` 桩 + `solutions/env_check.py`）—— 验收：`make check-env`
-- [x] P1 → `infer_lab/p1_framework`（`engine.py` 桩 + `server.py` 胶水 + `solutions/engine.py`）—— 验收：`make smoke`
+- [x] P1 → `infer_lab/p1_framework`（`engine.py` 桩 + `server.py`/`metrics.py` 胶水 + `solutions/engine.py`；指标记录落 `docs/metrics/inference-baseline.json`）—— 验收：`make smoke`
 - [x] P2 → `infer_lab/p2_tokenizer`（`tokenizer.py` 桩 + solution）—— 验收：`pytest tests/test_p2_tokenizer.py`
 - [x] P2b → `infer_lab/p2_embedding`（`embedding.py` 桩 + solution）—— 验收：`pytest tests/test_p2_embedding.py`
 - [x] P3 → `infer_lab/p3_attention`（`attention.py` 桩 + solution）—— 验收：`pytest tests/test_p3_attention.py`

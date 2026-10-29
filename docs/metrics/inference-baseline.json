@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "description": "推理指标对拍记录：`framework` 槽位由 `make smoke` 自动写入（框架部署基线），`handrolled` 槽位预留，待手搓引擎（P2-P5）按同协议出数后回填，供逐字段对比。",
+  "updated_at": "2026-10-29T10:29:05Z",
+  "protocol": {
+    "prompt": "the little engine could",
+    "max_tokens": 24,
+    "requests": 5,
+    "sampling": "greedy(temperature=0)",
+    "latency_view": "client-side(含 HTTP 往返)",
+    "tokens_per_s": "completion_tokens / latency_s"
+  },
+  "framework": {
+    "engine": "transformers",
+    "model": "models_cache/tiny-gpt2-toy",
+    "param_count": 105920,
+    "device": "mps",
+    "library_versions": {
+      "torch": "2.15.0",
+      "transformers": "5.21.1"
+    },
+    "sample_text": "run . the little engine could think . the little engine could read . the little engine could write . a tiny model can",
+    "requests": [
+      {
+        "index": 0,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 53.52,
+        "tokens_per_s": 448.43
+      },
+      {
+        "index": 1,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 44.5,
+        "tokens_per_s": 539.33
+      },
+      {
+        "index": 2,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 44.94,
+        "tokens_per_s": 534.05
+      },
+      {
+        "index": 3,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 40.07,
+        "tokens_per_s": 598.95
+      },
+      {
+        "index": 4,
+        "prompt_tokens": 4,
+        "completion_tokens": 24,
+        "latency_ms": 35.05,
+        "tokens_per_s": 684.74
+      }
+    ],
+    "summary": {
+      "requests": 5,
+      "prompt_tokens": 4,
+      "completion_tokens_per_request": 24,
+      "completion_tokens_total": 120,
+      "latency_ms_avg": 43.62,
+      "latency_ms_p50": 44.5,
+      "latency_ms_min": 35.05,
+      "latency_ms_max": 53.52,
+      "tokens_per_s": 550.26
+    }
+  },
+  "handrolled": {
+    "engine": null,
+    "model": null,
+    "param_count": null,
+    "device": null,
+    "library_versions": null,
+    "sample_text": null,
+    "requests": null,
+    "summary": null,
+    "todo": "预留对比位：手搓引擎按 framework.protocol 同口径（greedy、同 prompt、同 max_tokens、同请求数）跑 N 次补全后，把各字段填到这里；不要动 framework 槽位。"
+  }
+}

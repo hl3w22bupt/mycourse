@@ -4,6 +4,7 @@ PY       ?= .venv/bin/python
 PIP      ?= .venv/bin/python -m pip
 HF_ENDPOINT ?= https://hf-mirror.com   # huggingface.co 直连不通时自动走镜像，可覆盖
 TINY_MODEL ?= models_cache/tiny-gpt2-toy   # P1 默认模型（离线自建，可换任意 hub 模型名）
+METRICS_OUT ?= docs/metrics/inference-baseline.json   # P1 冒烟写入的框架侧指标记录位
 
 .PHONY: help install check-env bootstrap test test-user test-all \
         train-demo generate-demo serve smoke e2e clean
@@ -18,7 +19,7 @@ help:
 	@echo "  make generate-demo  加载 checkpoint 生成文本 demo"
 	@echo "  make bootstrap      P1 离线自建 tiny-gpt2（默认模型，幂等）"
 	@echo "  make serve          P1 拉起 OpenAI 兼容推理服务（transformers 后端）"
-	@echo "  make smoke          P1 冒烟：起服务→请求→断言非空生成→关服务"
+	@echo "  make smoke          P1 冒烟：起服务→请求→断言非空生成→写框架侧指标记录→关服务"
 	@echo "  make e2e            一键复现：check-env → test → train-demo → generate-demo"
 
 install:
@@ -53,7 +54,7 @@ serve: bootstrap
 
 smoke:
 	HF_ENDPOINT=$(HF_ENDPOINT) $(PY) scripts/smoke_framework.py \
-		--model $(TINY_MODEL) --port 8001
+		--model $(TINY_MODEL) --port 8001 --metrics-out $(METRICS_OUT)
 
 e2e: check-env test train-demo generate-demo
 	@echo ""

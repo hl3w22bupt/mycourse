@@ -55,6 +55,24 @@ class FrameworkEngine:
     def model_name(self) -> str:
         return self._requested_name
 
+    # ---- 引擎元信息（指标记录 /v1/engine/info 用，见 metrics.py）----
+    @property
+    def engine_kind(self) -> str:
+        return "transformers"
+
+    @property
+    def param_count(self) -> int | None:
+        """模型参数量；懒加载未触发时为 ``None``（该端点不主动拉模型）。"""
+        if self.model is None:
+            return None
+        return int(sum(p.numel() for p in self.model.parameters()))
+
+    @property
+    def library_versions(self) -> dict:
+        import transformers
+
+        return {"torch": torch.__version__, "transformers": transformers.__version__}
+
     def _resolve_source(self) -> str:
         """本地 bootstrap 模型缺失时回退 Hub 模型（有网环境可直接用官方 tiny-gpt2）。"""
         if os.path.exists(self._requested_name) or os.path.isdir(self._requested_name):

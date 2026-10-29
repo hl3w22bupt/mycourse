@@ -153,3 +153,50 @@ SMOKE_OK 框架部署端到端通过（起服务 → 生成非空 → chat 通�
 
 结论：路线图勾稽表（ROADMAP.md）9 项全部核验通过，双模式测试、训练/生成闭环与
 P1 框架部署冒烟在干净环境下均可执行。
+
+## 9. P1 指标记录位 —— `make smoke` 冒烟通过后写入框架侧指标（2026-10-29 追加）
+
+「一条命令拉起本地推理服务并冒烟通过，留框架侧指标记录位供对比」节点：`make smoke`
+在原有「起服务 → 生成断言 → chat 通道」之后，按对拍协议（greedy、同 prompt、同
+`max_tokens`、5 次请求）计时补打请求，把框架侧延迟 / 吞吐写进
+[metrics/inference-baseline.json](metrics/inference-baseline.json) 的 `framework` 槽位；
+`handrolled` 槽位预留，待手搓引擎（P2-P5）按同口径回填。
+
+干净状态（`models_cache/` 不存在）真机运行，一条命令全离线走完 bootstrap → 服务 → 冒烟 → 留档。
+
+首跑（干净状态，自动触发离线自建，幂等）：
+
+```
+$ make smoke
+SMOKE_BOOTSTRAP models_cache/tiny-gpt2-toy 不存在，先离线自建 tiny-gpt2 ……
+BOOTSTRAP_MODEL params=105920 device=mps
+BOOTSTRAP_CORPUS tokens=1344 unk_ratio=0.0000
+BOOTSTRAP_LOSS 3.7844 -> 0.0614
+BOOTSTRAP_OK saved to models_cache/tiny-gpt2-toy
+SMOKE_OK 框架部署端到端通过（起服务 → 生成非空 → chat 通道 → 指标留档）
+```
+
+复跑（模型已缓存，生成最终入库的记录；每次冒烟都会刷新 `framework` 槽位）：
+
+```
+$ make smoke
+SMOKE_HEALTH {'status': 'ok', 'model': 'models_cache/tiny-gpt2-toy'}
+SMOKE_COMPLETION_TEXT 'write . a tiny model can learn . a tiny model can grow . a tiny model can run . a tiny model can'
+SMOKE_CHAT_TEXT '. . . the engine step by step . we build the model day by day . attention is all you need . attention'
+SMOKE_METRICS_PROTOCOL {'prompt': 'the little engine could', 'max_tokens': 24, 'requests': 5, 'sampling': 'greedy(temperature=0)', 'latency_view': 'client-side(含 HTTP 往返)', ...}
+SMOKE_METRICS_REQUEST {'index': 0, 'prompt_tokens': 4, 'completion_tokens': 24, 'latency_ms': 53.52, 'tokens_per_s': 448.43}
+SMOKE_METRICS_REQUEST {'index': 1, 'prompt_tokens': 4, 'completion_tokens': 24, 'latency_ms': 44.5, 'tokens_per_s': 539.33}
+SMOKE_METRICS_REQUEST {'index': 2, 'prompt_tokens': 4, 'completion_tokens': 24, 'latency_ms': 44.94, 'tokens_per_s': 534.05}
+SMOKE_METRICS_REQUEST {'index': 3, 'prompt_tokens': 4, 'completion_tokens': 24, 'latency_ms': 40.07, 'tokens_per_s': 598.95}
+SMOKE_METRICS_REQUEST {'index': 4, 'prompt_tokens': 4, 'completion_tokens': 24, 'latency_ms': 35.05, 'tokens_per_s': 684.74}
+SMOKE_METRICS_SUMMARY {'requests': 5, 'prompt_tokens': 4, 'completion_tokens_per_request': 24, 'completion_tokens_total': 120, 'latency_ms_avg': 43.62, 'latency_ms_p50': 44.5, 'latency_ms_min': 35.05, 'latency_ms_max': 53.52, 'tokens_per_s': 550.26}
+SMOKE_METRICS_SAVED docs/metrics/inference-baseline.json（framework 槽位已写入；handrolled 槽位预留，待手搓引擎对拍回填）
+SMOKE_OK 框架部署端到端通过（起服务 → 生成非空 → chat 通道 → 指标留档）
+```
+
+- 环境：Python 3.11.15（uv 管理），torch 2.15.0 / transformers 5.21.1 / fastapi 0.162.0，
+  macOS arm64（MPS），全离线。
+- 记录要点：105,920 参数 tiny-gpt2 @ mps，单请求补全 24 token，p50 延迟 ≈44.5ms、
+  聚合吞吐 ≈550 tokens/s（客户端视角，含 HTTP 往返）。
+- 新增测试：`tests/test_p1_metrics.py`（口径与结构，桩注入）+
+  `tests/test_repo_artifacts.py` 守护「framework 已填 / handrolled 预留」。
